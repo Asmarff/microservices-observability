@@ -1,123 +1,77 @@
 services:
 
   service-a:
-    image: node:22-alpine
-    working_dir: /app
-
+    build: ./service-a
     environment:
       OTEL_SERVICE_NAME: service-a
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
-
-    command: node index.js
-
     ports:
       - "8001:8001"
-
     depends_on:
       - alloy
 
-
   service-b:
-    image: node:22-alpine
-    working_dir: /app
-
+    build: ./service-b
     environment:
       OTEL_SERVICE_NAME: service-b
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
-
-
-    command: node index.js
-
     ports:
       - "8002:8002"
-
     depends_on:
       - alloy
 
-
   prometheus:
     image: prom/prometheus:latest
-
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-
     ports:
       - "9090:9090"
-
     depends_on:
       - service-a
       - service-b
       - cadvisor
 
-
   grafana:
     image: grafana/grafana:latest
-
     ports:
       - "3000:3000"
-
     depends_on:
       - prometheus
       - loki
       - tempo
 
-
   loki:
     image: grafana/loki:latest
-
     command: -config.file=/etc/loki/local-config.yaml
-
     volumes:
       - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
       - loki-data:/loki
 
-    ports:
-      - "3100:3100"
-
-
   tempo:
     image: grafana/tempo:latest
-
     command: -config.file=/etc/tempo/tempo.yml
-
     volumes:
       - ./tempo/tempo.yml:/etc/tempo/tempo.yml
       - tempo-data:/var/tempo
 
-    ports:
-      - "3200:3200"
-      - "4317:4317"
-      - "4318:4318"
-
-
   alloy:
     image: grafana/alloy:latest
-
     command: run /etc/alloy/config.alloy
-
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy
       - /var/run/docker.sock:/var/run/docker.sock:ro
-
     depends_on:
       - loki
       - tempo
 
-
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
-
     privileged: true
-
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
-
-    ports:
-      - "8080:8080"
-
 
 volumes:
   loki-data:
